@@ -1,14 +1,22 @@
 var gameSpace = document.getElementById('game');
 var ctx = gameSpace.getContext("2d");
-var gameSpace
+ctx.canvas.width  = window.innerWidth;
+ctx.canvas.height = window.innerHeight;
 
 const Game = function(){
     this.screenWidth = gameSpace.width;
     this.screenHeight = gameSpace.height;
     this.starField = [];
     this.playing = false;
-    this.direction = 1;
-    this.pMomentum = 0;
+    this.pMomentum = 1;
+    this.fieldSize = 10;
+    this.tick = 0;
+    this.player = {
+        x: gameSpace.width/2,
+        y: gameSpace.height/2,
+        s: 4,
+        c: 'rgb(255,40,40)'
+    }
     this.keys = {
         37: false, //left
         38: false, //up
@@ -16,11 +24,25 @@ const Game = function(){
         40: false,  //down
     }
 
+    this.checkCollision = function(star){
+        let circle1 = {radius: this.player.s, x: this.player.x, y: this.player.y};
+        var circle2 = {radius: star.s, x: star.x, y: star.y};
+
+        var dx = circle1.x - circle2.x;
+        var dy = circle1.y - circle2.y;
+        var distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < circle1.radius + circle2.radius) {
+            return true;
+        }
+        return false;
+    }
+
 
     this._init = function(){
         ctx.fillStyle  = 'rgb(0,0,0)';
         ctx.fillRect(0, 0, this.screenWidth, this.screenHeight);
-        for (let i = 10; i >= 0; i--){
+        for (let i = this.fieldSize; i >= 0; i--){
             let st = this.starFactory();
             this.starField.push(st);
             this.renderStar(st);
@@ -29,32 +51,39 @@ const Game = function(){
 
     this.move = function(star){
         if (this.keys[37]){
-            star.x += star.v;
+            star.x += Math.floor(star.v * this.pMomentum);
             if (star.x > this.screenWidth + (star.s/2)){
                 star.x = 0 - star.s;
                 star.y = randRange(this.screenHeight);
             }
         }
         if (this.keys[38]){
-            star.y += star.v;
+            star.y += Math.floor(star.v * this.pMomentum);
             if (star.y > this.screenHeight + (star.s/2)){
                 star.y = 0 - star.s;
                 star.x = randRange(this.screenWidth);
             }
         }
         if (this.keys[39]){
-            star.x -= star.v;
+            star.x -= Math.floor(star.v * this.pMomentum);
             if (star.x < 0 - (star.s/2)){
                 star.x = this.screenWidth + star.s;
                 star.y = randRange(this.screenHeight);
             }
         }
         if (this.keys[40]){
-            star.y -= star.v;
+            star.y -= Math.floor(star.v * this.pMomentum);
             if (star.y < 0 - (star.s/2)){
                 star.y = this.screenHeight + star.s;
                 star.x = randRange(this.screenWidth);
             }
+        }
+        if(this.checkCollision(star)){
+            this.playing = false;
+            this.keys[37] = false;
+            this.keys[38] = false;
+            this.keys[39] = false;
+            this.keys[40] = false;
         }
     }
 
@@ -111,6 +140,11 @@ document.addEventListener('keyup',function(e){
 });
 
 var draw = setInterval(function(){
+    if (itsAlive.playing){
+        itsAlive.tick++;
+    }
+    ctx.canvas.width  = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
     ctx.clearRect(0, 0, itsAlive.screenWidth, itsAlive.screenHeight);
     ctx.fillStyle  = 'rgb(0,0,0)';
     ctx.fillRect(0, 0, itsAlive.screenWidth, itsAlive.screenHeight);
@@ -120,6 +154,10 @@ var draw = setInterval(function(){
         itsAlive.renderStar(i);
     });
 
+    if (itsAlive.tick > 299 && itsAlive.tick % 300 === 0){
+        itsAlive.pMomentum += 0.25;
+    }
+
     ctx.fillStyle = 'rgb(255,40,40)';
     ctx.strokeStyle = '#222222';
     ctx.lineWidth = 2;
@@ -128,4 +166,5 @@ var draw = setInterval(function(){
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+
 },16)
